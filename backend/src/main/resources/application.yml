@@ -1,0 +1,97 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: coderag-backend
+
+  # 静态资源配置（前端 SPA 打包进 JAR 后从此目录提供）
+  web:
+    resources:
+      static-locations: classpath:/static/
+      add-mappings: true
+      cache:
+        period: 30d
+
+  datasource:
+    # 阿里云 FC 环境变量：DB_HOST / DB_USERNAME / DB_PASSWORD / DB_NAME
+    # JDBC 连接强制 sslmode=require 适配 Neon PostgreSQL
+    url: jdbc:postgresql://${DB_HOST:localhost:5432}/${DB_NAME:coderag}?sslmode=require
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      idle-timeout: 30000
+      connection-timeout: 20000
+
+  jpa:
+    hibernate:
+      ddl-auto: none   # 由 DatabaseMigrationInitializer 管理建表
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+        jdbc:
+          time_zone: Asia/Shanghai
+
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+    default-property-inclusion: non_null
+
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+# JWT 配置
+jwt:
+  secret: ${JWT_SECRET:coderag-default-secret-key-change-in-production-2024}
+  expiration: 604800000  # 7天，毫秒
+
+# 火山引擎方舟 AI 配置
+# - 对话走火山方舟：doubao-seed-2.0-mini（输入0.2/输出2.0 元/百万token）
+# - Embedding 走百炼：text-embedding-v4（避免重建向量库）
+dashscope:
+  api-key: ${ARK_API_KEY:}
+  base-url: https://ark.cn-beijing.volces.com/api/v3
+  model: doubao-seed-2-0-mini-260428
+  embedding-model: text-embedding-v4
+  embedding-base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+  embedding-api-key: ${DASHSCOPE_API_KEY:}
+  embedding-dimension: 1024
+  max-tokens: 4096
+
+# GitHub API
+github:
+  api:
+    token: ${GITHUB_API_TOKEN:}
+    base-url: https://api.github.com
+
+# Gitee V5 API
+gitee:
+  api:
+    token: ${GITEE_API_TOKEN:}
+    base-url: https://gitee.com/api/v5
+
+# 配额系统
+quota:
+  user:
+    daily-import-limit: 3
+    daily-chat-limit: 20
+    max-repos: 5
+    max-storage-mb: 100
+  premium:
+    daily-import-limit: 20
+    daily-chat-limit: 200
+    max-repos: 30
+    max-storage-mb: 500
+
+# 异步任务
+async:
+  core-pool-size: 2
+  max-pool-size: 5
+  queue-capacity: 50

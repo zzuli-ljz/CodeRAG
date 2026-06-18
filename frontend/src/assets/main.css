@@ -1,0 +1,319 @@
+/* ================================
+   CodeRAG 全局样式
+   极简工科程序员工具风、纯白浅灰底色、方正整洁
+   ================================ */
+
+:root {
+  /* 核心配色 - 黑、深灰、浅灰、极简深蓝点缀 */
+  --color-bg: #ffffff;
+  --color-bg-secondary: #f7f8fa;
+  --color-bg-tertiary: #f0f1f3;
+  --color-border: #e2e4e8;
+  --color-border-light: #eef0f2;
+  --color-text-primary: #1a1a2e;
+  --color-text-secondary: #5a5d6a;
+  --color-text-tertiary: #8b8fa3;
+  --color-accent: #2d3a8c;
+  --color-accent-hover: #3b4da8;
+  --color-accent-light: #eef0f8;
+  --color-success: #2d7d46;
+  --color-error: #c43e3e;
+  --color-warning: #b08a1e;
+
+  /* 间距 */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+
+  /* 圆角 */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+
+  /* 阴影 */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.08);
+  --shadow-lg: 0 4px 16px rgba(0,0,0,0.1);
+
+  /* 字体 */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-text-primary);
+  background: var(--color-bg-secondary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+}
+
+a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--color-accent-hover);
+}
+
+/* ================================
+   通用组件样式
+   ================================ */
+
+/* 按钮 */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: var(--font-sans);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-primary {
+  background: var(--color-accent);
+  color: #fff;
+  border-color: var(--color-accent);
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+}
+.btn-secondary {
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  border-color: var(--color-border);
+}
+.btn-secondary:hover:not(:disabled) {
+  background: var(--color-bg-secondary);
+}
+.btn-danger {
+  background: var(--color-error);
+  color: #fff;
+  border-color: var(--color-error);
+}
+.btn-sm {
+  padding: 4px 12px;
+  font-size: 13px;
+}
+.btn-lg {
+  padding: 10px 24px;
+  font-size: 15px;
+}
+
+/* 输入框 */
+.input {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-primary);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  outline: none;
+  transition: border-color 0.15s;
+  font-family: var(--font-sans);
+}
+.input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent-light);
+}
+.input::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+textarea.input {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* 卡片 */
+.card {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-lg);
+}
+.card-hover:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-accent);
+}
+
+/* 标签 */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+}
+.tag-accent {
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+}
+.tag-success {
+  background: #e8f5e9;
+  color: var(--color-success);
+}
+.tag-error {
+  background: #fde8e8;
+  color: var(--color-error);
+}
+
+/* 布局 */
+.page-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-xl);
+}
+.page-header {
+  margin-bottom: var(--space-xl);
+}
+.page-title {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-sm);
+}
+.page-desc {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+/* 网格 */
+.grid {
+  display: grid;
+  gap: var(--space-lg);
+}
+.grid-2 { grid-template-columns: repeat(2, 1fr); }
+.grid-3 { grid-template-columns: repeat(3, 1fr); }
+.grid-4 { grid-template-columns: repeat(4, 1fr); }
+
+/* 分割线 */
+.divider {
+  height: 1px;
+  background: var(--color-border-light);
+  margin: var(--space-lg) 0;
+}
+
+/* 加载 */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2xl);
+  color: var(--color-text-tertiary);
+}
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-accent);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  margin-right: var(--space-sm);
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 空状态 */
+.empty-state {
+  text-align: center;
+  padding: var(--space-2xl);
+  color: var(--color-text-tertiary);
+}
+
+/* 代码块 */
+.code-block {
+  background: #1a1a2e;
+  color: #e8e8e8;
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* 进度条 */
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  background: var(--color-bg-tertiary);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* 表格 */
+.table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.table th,
+.table td {
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border-light);
+}
+.table th {
+  background: var(--color-bg-secondary);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.table tr:last-child td {
+  border-bottom: none;
+}
+.table tr:hover td {
+  background: var(--color-bg-secondary);
+}

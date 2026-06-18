@@ -1,0 +1,48 @@
+# ========================
+# 后端
+# ========================
+backend/target/
+backend/*.jar
+backend/*.log
+backend/.mvn/
+backend/mvnw
+backend/mvnw.cmd
+
+# ========================
+# 前端
+# ========================
+frontend/node_modules/
+frontend/node/
+frontend/dist/
+frontend/.env.local
+frontend/.env.*.local
+
+# ========================
+# 部署产物
+# ========================
+backend/src/main/resources/static/
+deploy/
+deploy.zip
+*.zip
+
+# ========================
+# 通用
+# ========================
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+.env
+*.log
+build_log.txt
+
+# ========================
+# 敏感信息
+# ========================
+application-prod.yml
+*.pem
+*.key
