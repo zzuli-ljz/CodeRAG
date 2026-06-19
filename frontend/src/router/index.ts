@@ -90,6 +90,42 @@ const router = createRouter({
       name: 'Admin',
       component: () => import('@/views/Admin.vue'),
       meta: { requiresAuth: true, requiresAdmin: true }
+    },
+    {
+      path: '/snippets',
+      name: 'Snippets',
+      component: () => import('@/views/Snippets.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/snippets/:id/edit',
+      name: 'SnippetEditor',
+      component: () => import('@/views/SnippetEditor.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/achievement',
+      name: 'Achievement',
+      component: () => import('@/views/Achievement.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/learning-path/:repoId?',
+      name: 'LearningPath',
+      component: () => import('@/views/LearningPath.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/challenge/:repoId',
+      name: 'Challenge',
+      component: () => import('@/views/Challenge.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/timeline/:repoId',
+      name: 'CodeTimeline',
+      component: () => import('@/views/CodeTimeline.vue'),
+      meta: { requiresAuth: true }
     }
   ]
 })

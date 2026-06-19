@@ -37,6 +37,7 @@ public class QuizService {
     private final UserRepository userRepository;
     private final VectorStore vectorStore;
     private final CacheService cacheService;
+    private final AchievementService achievementService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /** 单个代码片段最大字符数（超过则截断） */
@@ -304,7 +305,17 @@ public class QuizService {
         attempt.setAiFeedback(feedback);
         // 答错的题自动加入错题本
         attempt.setStatus(isCorrect ? "NORMAL" : "WRONG_BOOK");
-        return quizAttemptRepository.save(attempt);
+        QuizAttempt saved = quizAttemptRepository.save(attempt);
+
+        // 触发刷题相关成就
+        try {
+            long quizCount = quizAttemptRepository.countByUserId(userId);
+            achievementService.checkAndAwardQuizAchievements(userId, quizCount);
+        } catch (Exception e) {
+            log.warn("成就检查失败（非致命）: userId={}, error={}", userId, e.getMessage());
+        }
+
+        return saved;
     }
 
     /**

@@ -246,3 +246,135 @@ CREATE TABLE IF NOT EXISTS translation_histories (
 
 CREATE INDEX IF NOT EXISTS idx_translation_histories_repo_id ON translation_histories(repo_id);
 CREATE INDEX IF NOT EXISTS idx_translation_histories_user_id ON translation_histories(user_id);
+
+-- -----------------------------------------------------------
+-- 16. 代码片段收藏表
+-- -----------------------------------------------------------
+CREATE TABLE IF NOT EXISTS code_snippets (
+    id              BIGSERIAL PRIMARY KEY,
+    user_id         BIGINT        NOT NULL,
+    repo_id         BIGINT        NOT NULL,
+    file_path       VARCHAR(500),
+    language        VARCHAR(100),
+    content         TEXT          NOT NULL,
+    title           VARCHAR(200),
+    note            TEXT,
+    tags            VARCHAR(500),
+    start_line      INTEGER,
+    end_line        INTEGER,
+    created_at      TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_code_snippets_user_id ON code_snippets(user_id);
+CREATE INDEX IF NOT EXISTS idx_code_snippets_user_repo ON code_snippets(user_id, repo_id);
+
+-- -----------------------------------------------------------
+-- 17. 学习打卡记录表
+-- -----------------------------------------------------------
+CREATE TABLE IF NOT EXISTS learning_streaks (
+    id              BIGSERIAL PRIMARY KEY,
+    user_id         BIGINT        NOT NULL,
+    date            DATE          NOT NULL,
+    activity_count  INTEGER       NOT NULL DEFAULT 1,
+    created_at      TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_learning_streaks_user_date ON learning_streaks(user_id, date);
+
+-- -----------------------------------------------------------
+-- 18. 用户成就表
+-- -----------------------------------------------------------
+CREATE TABLE IF NOT EXISTS user_achievements (
+    id              BIGSERIAL PRIMARY KEY,
+    user_id         BIGINT        NOT NULL,
+    achievement_key VARCHAR(50)   NOT NULL,
+    achievement_name VARCHAR(100) NOT NULL,
+    description     VARCHAR(500),
+    icon            VARCHAR(50),
+    earned_at       TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, achievement_key)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_achievements_user_id ON user_achievements(user_id);
+
+-- -----------------------------------------------------------
+-- 19. 代码学习路径表
+-- -----------------------------------------------------------
+CREATE TABLE IF NOT EXISTS learning_paths (
+    id              BIGSERIAL PRIMARY KEY,
+    user_id         BIGINT        NOT NULL,
+    repo_id         BIGINT        NOT NULL,
+    round           INTEGER       DEFAULT 1,
+    path_content    TEXT          NOT NULL,
+    created_at      TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_learning_paths_user_repo ON learning_paths(user_id, repo_id);
+
+-- -----------------------------------------------------------
+-- 20. 编程挑战表
+-- -----------------------------------------------------------
+CREATE TABLE IF NOT EXISTS code_challenges (
+    id                   BIGSERIAL PRIMARY KEY,
+    user_id              BIGINT        NOT NULL,
+    repo_id              BIGINT        NOT NULL,
+    file_path            VARCHAR(500),
+    challenge_description TEXT         NOT NULL,
+    code_template        TEXT          NOT NULL,
+    reference_code       TEXT          NOT NULL,
+    language             VARCHAR(100),
+    difficulty           VARCHAR(50),
+    created_at           TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_code_challenges_repo_id ON code_challenges(repo_id);
+CREATE INDEX IF NOT EXISTS idx_code_challenges_user_repo ON code_challenges(user_id, repo_id);
+
+-- -----------------------------------------------------------
+-- 21. 编程挑战提交记录表
+-- -----------------------------------------------------------
+CREATE TABLE IF NOT EXISTS challenge_submissions (
+    id              BIGSERIAL PRIMARY KEY,
+    user_id         BIGINT        NOT NULL,
+    challenge_id    BIGINT        NOT NULL,
+    submitted_code  TEXT          NOT NULL,
+    score           INTEGER,
+    feedback        TEXT,
+    created_at      TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_challenge_submissions_user_challenge ON challenge_submissions(user_id, challenge_id);
+
+-- -----------------------------------------------------------
+-- 22. 笔记版本历史表
+-- -----------------------------------------------------------
+CREATE TABLE IF NOT EXISTS note_versions (
+    id              BIGSERIAL PRIMARY KEY,
+    snippet_id      BIGINT        NOT NULL,
+    user_id         BIGINT        NOT NULL,
+    note            TEXT,
+    tags            VARCHAR(500),
+    version_number  INTEGER       NOT NULL,
+    version_label   VARCHAR(100),
+    summary         VARCHAR(200),
+    created_at      TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_note_versions_snippet ON note_versions(snippet_id, version_number DESC);
+CREATE INDEX IF NOT EXISTS idx_note_versions_user ON note_versions(user_id);
+
+-- -----------------------------------------------------------
+-- 23. 代码时间线分析记录表
+-- -----------------------------------------------------------
+CREATE TABLE IF NOT EXISTS code_timelines (
+    id              BIGSERIAL PRIMARY KEY,
+    user_id         BIGINT        NOT NULL,
+    repo_id         BIGINT        NOT NULL,
+    round           INTEGER       DEFAULT 1,
+    timeline_data   TEXT,
+    created_at      TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_code_timelines_user_repo ON code_timelines(user_id, repo_id);

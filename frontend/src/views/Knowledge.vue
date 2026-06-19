@@ -68,9 +68,19 @@
               <span class="tag">{{ chunk.filePath }}</span>
               <span class="tag">行 {{ chunk.startLine }} - {{ chunk.endLine }}</span>
             </div>
-            <button class="btn btn-secondary btn-sm" @click="toggleExpand(chunk.id)">
-              {{ expandedChunks.has(chunk.id) ? '收起' : '展开' }}
-            </button>
+            <div class="chunk-actions">
+              <button
+                class="btn btn-sm"
+                :class="collectedChunkIds.has(chunk.id) ? 'btn-warning' : 'btn-primary'"
+                :disabled="savingChunkId === chunk.id"
+                @click="handleCollect(chunk)"
+              >
+                {{ savingChunkId === chunk.id ? '处理中...' : collectedChunkIds.has(chunk.id) ? '取消收藏' : '⭐ 收藏' }}
+              </button>
+              <button class="btn btn-secondary btn-sm" @click="toggleExpand(chunk.id)">
+                {{ expandedChunks.has(chunk.id) ? '收起' : '展开' }}
+              </button>
+            </div>
           </div>
           <div v-if="chunk.summary" class="chunk-summary">
             <strong>摘要：</strong>{{ chunk.summary }}
@@ -103,7 +113,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { knowledgeApi } from '@/api'
+import { knowledgeApi, snippetApi } from '@/api'
 
 const route = useRoute()
 const repoId = Number(route.params.repoId)
@@ -117,6 +127,9 @@ const filterLanguage = ref('')
 const expandedChunks = ref<Set<number>>(new Set())
 const currentPage = ref(0)
 const totalPages = ref(1)
+const savingChunkId = ref<number | null>(null)
+const collectedChunkIds = ref<Set<number>>(new Set())
+const collectedSnippetIds = ref<Map<number, number>>(new Map()) // chunkId -> snippetId
 
 function getFileName(path: string): string {
   if (!path) return '未知'
@@ -176,16 +189,88 @@ function goPage(page: number) {
   loadChunks(page)
 }
 
+async function handleCollect(chunk: any) {
+  savingChunkId.value = chunk.id
+  try {
+    if (collectedChunkIds.value.has(chunk.id)) {
+      // 取消收藏
+      const snippetId = collectedSnippetIds.value.get(chunk.id)
+      if (snippetId) {
+        await snippetApi.delete(snippetId)
+        collectedSnippetIds.value.delete(chunk.id)
+      }
+      collectedChunkIds.value.delete(chunk.id)
+    } else {
+      // 收藏
+      const res = await snippetApi.save({
+        repoId: repoId,
+        filePath: chunk.filePath || undefined,
+        language: chunk.language || undefined,
+        content: chunk.content,
+        title: chunk.filePath ? chunk.filePath.split('/').pop() : undefined,
+        startLine: chunk.startLine ?? undefined,
+        endLine: chunk.endLine ?? undefined
+      })
+      // 记录收藏状态
+      if (res.data.code === 200 && res.data.data?.id) {
+        collectedChunkIds.value.add(chunk.id)
+        collectedSnippetIds.value.set(chunk.id, res.data.data.id)
+      }
+    }
+  } catch (e: any) {
+    alert('操作失败: ' + (e.response?.data?.message || e.message))
+  } finally {
+    savingChunkId.value = null
+  }
+}
+
+async function loadCollectedStatus() {
+  try {
+    const res = await snippetApi.getCollectedByRepo(repoId)
+    if (res.data.code === 200) {
+      const list = res.data.data || []
+      for (const item of list) {
+        // 通过 filePath + startLine + endLine 匹配 chunk
+        // 暂时先记录 snippetId，等 chunk 加载后再匹配
+        collectedSnippetIds.value.set(item.id, item.id) // 临时用 snippetId 做 key
+      }
+      // 存储完整列表供匹配
+      ;(window as any).__collectedSnippets = list
+    }
+  } catch {}
+}
+
+// 匹配已收藏的 chunk
+function matchCollectedChunks() {
+  const list: any[] = (window as any).__collectedSnippets || []
+  if (!list.length) return
+  for (const chunk of chunks.value) {
+    for (const item of list) {
+      if (
+        item.filePath === chunk.filePath &&
+        item.startLine === chunk.startLine &&
+        item.endLine === chunk.endLine
+      ) {
+        collectedChunkIds.value.add(chunk.id)
+        collectedSnippetIds.value.set(chunk.id, item.id)
+        break
+      }
+    }
+  }
+}
+
 onMounted(async () => {
   try {
     const [overviewRes, langsRes] = await Promise.all([
       knowledgeApi.getOverview(repoId),
-      knowledgeApi.listLanguages(repoId)
+      knowledgeApi.listLanguages(repoId),
+      loadCollectedStatus()
     ])
     if (overviewRes.data.code === 200) overview.value = overviewRes.data.data
     if (langsRes.data.code === 200) languages.value = langsRes.data.data || []
   } catch {}
   await loadChunks()
+  matchCollectedChunks()
   loading.value = false
 })
 </script>
@@ -312,6 +397,11 @@ onMounted(async () => {
   display: flex;
   gap: var(--space-xs);
   flex-wrap: wrap;
+}
+.chunk-actions {
+  display: flex;
+  gap: var(--space-xs);
+  flex-shrink: 0;
 }
 .chunk-summary {
   font-size: 13px;

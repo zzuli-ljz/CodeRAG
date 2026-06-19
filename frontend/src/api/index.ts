@@ -195,4 +195,95 @@ export const knowledgeApi = {
     request.get(`/knowledge/languages/${repoId}`)
 }
 
+// ================================
+// Snippet API (代码片段收藏)
+// ================================
+export const snippetApi = {
+  save: (data: { repoId: number; filePath?: string; language?: string; content: string; title?: string; note?: string; tags?: string; startLine?: number; endLine?: number }) =>
+    request.post('/snippets', data),
+  updateNote: (id: number, note?: string, tags?: string) =>
+    request.put(`/snippets/${id}`, { note, tags }),
+  delete: (id: number) =>
+    request.delete(`/snippets/${id}`),
+  getById: (id: number) =>
+    request.get(`/snippets/${id}`),
+  list: (repoId?: number, keyword?: string, page = 0, size = 20) =>
+    request.get('/snippets', { params: { repoId, keyword, page, size } }),
+  getTags: () =>
+    request.get('/snippets/tags'),
+  exportMarkdown: () =>
+    request.get('/snippets/export', { responseType: 'blob' }),
+  /** 获取某仓库下已收藏的片段（用于恢复收藏按钮状态） */
+  getCollectedByRepo: (repoId: number) =>
+    request.get(`/snippets/collected/${repoId}`)
+}
+
+// ================================
+// Achievement API (学习打卡 & 成就)
+// ================================
+export const achievementApi = {
+  checkin: () =>
+    request.post('/achievement/checkin'),
+  getStreak: () =>
+    request.get('/achievement/streak'),
+  getAchievements: () =>
+    request.get('/achievement/list')
+}
+
+// ================================
+// Learning Path API (学习路径)
+// ================================
+export const learningPathApi = {
+  generate: (repoId: number, repoName: string) =>
+    request.post(`/learning-path/generate/${repoId}`, null, { params: { repoName } }),
+  getLatest: (repoId: number) =>
+    request.get(`/learning-path/latest/${repoId}`),
+  getHistory: (repoId: number) =>
+    request.get(`/learning-path/history/${repoId}`)
+}
+
+// ================================
+// Challenge API (编程挑战)
+// ================================
+export const challengeApi = {
+  generate: (repoId: number) =>
+    request.post(`/challenge/generate/${repoId}`),
+  submit: (challengeId: number, code: string) =>
+    request.post(`/challenge/submit/${challengeId}`, { code }),
+  list: (repoId: number, page = 0, size = 10) =>
+    request.get(`/challenge/list/${repoId}`, { params: { page, size } }),
+  getById: (challengeId: number) =>
+    request.get(`/challenge/${challengeId}`),
+  getSubmissions: (challengeId: number) =>
+    request.get(`/challenge/submissions/${challengeId}`)
+}
+
+// ================================
+// Note Version API (笔记版本历史)
+// ================================
+export const noteVersionApi = {
+  save: (snippetId: number, note?: string, tags?: string, versionLabel?: string) =>
+    request.post(`/note-versions/${snippetId}`, { note, tags, versionLabel }),
+  getVersions: (snippetId: number) =>
+    request.get(`/note-versions/${snippetId}`),
+  getVersion: (versionId: number) =>
+    request.get(`/note-versions/detail/${versionId}`),
+  rollback: (versionId: number) =>
+    request.post(`/note-versions/rollback/${versionId}`),
+  deleteVersion: (versionId: number) =>
+    request.delete(`/note-versions/${versionId}`)
+}
+
+// ================================
+// Timeline API (代码时间线)
+// ================================
+export const timelineApi = {
+  analyze: (repoId: number) =>
+    request.post(`/timeline/analyze/${repoId}`),
+  getLatest: (repoId: number) =>
+    request.get(`/timeline/latest/${repoId}`),
+  getHistory: (repoId: number, page = 0, size = 10) =>
+    request.get(`/timeline/history/${repoId}`, { params: { page, size } })
+}
+
 export default request

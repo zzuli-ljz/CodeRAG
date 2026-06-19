@@ -30,6 +30,7 @@ public class ChatService {
     private final ChatHistoryRepository chatHistoryRepository;
     private final QuotaService quotaService;
     private final CacheService cacheService;
+    private final AchievementService achievementService;
 
     /** 单个代码片段最大字符数（超过则截断） */
     private static final int MAX_CHUNK_LENGTH = 1500;
@@ -126,6 +127,14 @@ public class ChatService {
         history = chatHistoryRepository.save(history);
 
         // 配额计数已在入口处预扣，此处不再重复
+
+        // 10. 触发问答相关成就
+        try {
+            long chatCount = chatHistoryRepository.countByUserId(userId);
+            achievementService.checkAndAwardChatAchievements(userId, chatCount);
+        } catch (Exception e) {
+            log.warn("成就检查失败（非致命）: userId={}, error={}", userId, e.getMessage());
+        }
 
         return history;
     }

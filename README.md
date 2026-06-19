@@ -49,8 +49,15 @@
 | 🏗️ **架构自动解析** | AI 自动生成项目架构说明、模块关系与依赖图 |
 | 🔍 **版本智能对比** | 分支 / Commit 差异的 AI 解读，快速理解代码变更 |
 | 📝 **代码难点刷题** | 自动识别代码难点，生成练习题，AI 批改并讲解 |
+| 📋 **错题本** | 答题统计、错题回顾、收藏题目管理，支持正确率分析 |
+| 🏅 **编程挑战** | AI 生成编程题目（含语言/难度/模板），在线提交解答 |
 | 🌐 **代码翻译** | 支持代码片段 / 文件跨语言翻译 |
 | 🕸️ **代码图谱** | 构建代码调用关系图，可视化项目结构 |
+| 📅 **代码时间线** | 分析仓库演进历史，展示提交时间线与活跃度 |
+| 📌 **代码收藏夹** | 搜索/筛选/新建代码片段，支持导出 Markdown |
+| 📝 **笔记版本管理** | 代码笔记多版本保存、历史回溯、版本回滚 |
+| 🗺️ **学习路径** | AI 生成个性化代码学习路径，分步骤引导学习 |
+| 🏆 **打卡成就** | 每日学习打卡、连续天数统计、成就徽章系统 |
 | 👤 **个人管理中心** | 仓库管理、配额查看、角色权限控制 |
 | 🛡️ **全局限流 & 配额** | 基于角色的配额系统，支持管理员自定义用户配额 |
 | 🔐 **JWT 认证鉴权** | 无状态安全认证，BCrypt 密码加密 |
@@ -166,9 +173,9 @@ CodeRAG/
 │       │   ├── CodeRagApplication.java       # 应用启动类
 │       │   ├── adapter/                      # 平台适配器 (GitHub/Gitee)
 │       │   ├── config/                       # 配置类 (Security/CORS/AI/Quota)
-│       │   ├── controller/                   # REST 控制器 (10个)
-│       │   ├── service/                      # 业务服务层 (16个)
-│       │   ├── entity/                       # JPA 实体类 (13个)
+│       │   ├── controller/                   # REST 控制器 (17个)
+│       │   ├── service/                      # 业务服务层 (21个)
+│       │   ├── entity/                       # JPA 实体类 (20个)
 │       │   ├── repository/                   # 数据访问层
 │       │   ├── rag/                          # RAG 核心 (分块/向量化/AI调用)
 │       │   ├── common/                       # 公共类 (缓存/异常/常量)
@@ -186,23 +193,31 @@ CodeRAG/
     └── src/
         ├── main.ts                   # 应用入口
         ├── App.vue                   # 根组件
-        ├── router/index.ts           # 路由配置 (14个路由)
+        ├── router/index.ts           # 路由配置 (20个路由)
         ├── store/auth.ts             # Pinia 认证状态
         ├── api/index.ts              # API 封装 (Axios + JWT)
         ├── assets/main.css           # 全局样式 (极简设计)
         ├── components/               # 公共组件
-        └── views/                    # 页面组件 (15个)
+        └── views/                    # 页面组件 (21个)
             ├── Home.vue              # 首页
             ├── Login.vue             # 登录
             ├── Register.vue          # 注册
             ├── RepoImport.vue        # 仓库导入
             ├── RepoPreview.vue       # 仓库预览
+            ├── Knowledge.vue         # 知识库浏览
             ├── Chat.vue              # AI 问答
             ├── Architecture.vue      # 架构分析
             ├── VersionCompare.vue    # 版本对比
+            ├── CodeTimeline.vue      # 代码时间线
             ├── Quiz.vue              # 代码刷题
+            ├── QuizStats.vue         # 错题本 & 答题统计
+            ├── Challenge.vue         # 编程挑战
             ├── Translate.vue         # 代码翻译
             ├── Graph.vue             # 代码图谱
+            ├── Snippets.vue          # 代码收藏夹
+            ├── SnippetEditor.vue     # 笔记编辑器
+            ├── LearningPath.vue      # 学习路径
+            ├── Achievement.vue       # 打卡成就
             ├── Profile.vue           # 个人中心
             └── Admin.vue             # 管理后台
 ```
@@ -301,15 +316,34 @@ docker run -d -p 8080:8080 \
 | | `/api/repos/{id}` | GET | 仓库详情 |
 | | `/api/repos/{id}` | DELETE | 删除仓库 |
 | | `/api/repos/{id}/files` | GET | 仓库文件列表 |
+| **知识库** | `/api/knowledge/{repoId}/files` | GET | 文件树浏览 |
+| | `/api/knowledge/{repoId}/chunks` | GET | 代码片段分页 |
+| | `/api/knowledge/{repoId}/search` | GET | 向量语义检索 |
 | **问答** | `/api/chat` | POST | AI 代码问答 |
 | | `/api/chat/history/{repoId}` | GET | 问答历史 |
 | **架构** | `/api/architecture/analyze/{repoId}` | POST | 架构分析 |
 | | `/api/architecture/latest/{repoId}` | GET | 最新架构 |
 | **版本** | `/api/version/compare` | POST | 版本对比 |
+| **时间线** | `/api/timeline/analyze/{repoId}` | POST | 代码时间线分析 |
+| | `/api/timeline/{repoId}` | GET | 时间线数据 |
 | **刷题** | `/api/quiz/generate/{repoId}` | POST | 生成题目 |
 | | `/api/quiz/answer` | POST | 提交答案 |
+| | `/api/quiz/stats` | GET | 答题统计 |
+| | `/api/quiz/wrong-book` | GET | 错题本 |
+| | `/api/quiz/favorite` | GET | 收藏题目 |
+| **挑战** | `/api/challenge/generate/{repoId}` | POST | 生成编程挑战 |
+| | `/api/challenge/{id}/submit` | POST | 提交解答 |
 | **翻译** | `/api/translate/file` | POST | 翻译文件 |
 | **图谱** | `/api/graph/build/{repoId}` | POST | 构建代码图谱 |
+| **收藏夹** | `/api/snippets` | GET/POST | 代码片段列表/新建 |
+| | `/api/snippets/{id}` | GET/PUT/DELETE | 片段详情/更新/删除 |
+| | `/api/snippets/{id}/export` | GET | 导出 Markdown |
+| **笔记** | `/api/note-versions/{snippetId}` | GET/POST | 版本历史/保存笔记 |
+| | `/api/note-versions/rollback/{id}` | POST | 版本回滚 |
+| **学习路径** | `/api/learning-path/generate/{repoId}` | POST | 生成学习路径 |
+| | `/api/learning-path` | GET | 路径列表 |
+| **成就** | `/api/achievement/checkin` | POST | 每日打卡 |
+| | `/api/achievement/status` | GET | 打卡状态 & 成就 |
 | **用户** | `/api/user/profile` | GET | 个人中心 |
 | **管理** | `/api/admin/users` | GET | 用户列表 |
 | | `/api/admin/users/{id}/role` | PUT | 修改角色 |

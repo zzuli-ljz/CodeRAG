@@ -67,6 +67,18 @@
           <h3 class="action-title">知识库预览</h3>
           <p class="action-desc">查看已向量化的文档片段</p>
         </router-link>
+        <router-link :to="`/learning-path/${repo.id}`" class="card card-hover action-card">
+          <h3 class="action-title">🗺️ 学习路径</h3>
+          <p class="action-desc">AI 生成渐进式学习路线</p>
+        </router-link>
+        <router-link :to="`/challenge/${repo.id}`" class="card card-hover action-card">
+          <h3 class="action-title">💻 编程挑战</h3>
+          <p class="action-desc">基于代码生成编程练习</p>
+        </router-link>
+        <router-link :to="`/timeline/${repo.id}`" class="card card-hover action-card">
+          <h3 class="action-title">🕐 代码时间线</h3>
+          <p class="action-desc">仓库提交历史与演进</p>
+        </router-link>
       </div>
     </template>
   </div>

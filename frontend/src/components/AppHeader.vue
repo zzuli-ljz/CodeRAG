@@ -9,6 +9,15 @@
       <nav class="header-nav" v-if="authStore.isLoggedIn">
         <router-link to="/import" class="nav-link">导入仓库</router-link>
         <router-link to="/profile" class="nav-link">我的仓库</router-link>
+        <div class="nav-dropdown">
+          <span class="nav-link">学习工具 ▾</span>
+          <div class="dropdown-menu">
+            <router-link to="/snippets" class="dropdown-item">📌 代码收藏夹</router-link>
+            <router-link to="/quiz-stats" class="dropdown-item">📋 错题本</router-link>
+            <router-link to="/achievement" class="dropdown-item">🏆 打卡成就</router-link>
+            <router-link to="/learning-path" class="dropdown-item">🗺️ 学习路径</router-link>
+          </div>
+        </div>
         <router-link to="/profile" class="nav-link">个人中心</router-link>
         <router-link v-if="authStore.isAdmin" to="/admin" class="nav-link">管理后台</router-link>
       </nav>
@@ -112,5 +121,40 @@ function handleLogout() {
   font-size: 13px;
   color: var(--color-text-secondary);
   margin-right: var(--space-sm);
+}
+/* 下拉菜单 */
+.nav-dropdown {
+  position: relative;
+}
+.nav-dropdown .nav-link {
+  cursor: pointer;
+}
+.dropdown-menu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0,0,0,.12);
+  min-width: 160px;
+  z-index: 150;
+  padding: 6px 0;
+}
+.nav-dropdown:hover .dropdown-menu {
+  display: block;
+}
+.dropdown-item {
+  display: block;
+  padding: 8px 16px;
+  font-size: 13px;
+  color: var(--color-text-primary);
+  text-decoration: none;
+  transition: background 0.1s;
+}
+.dropdown-item:hover {
+  background: var(--color-accent-light);
+  color: var(--color-accent);
 }
 </style>

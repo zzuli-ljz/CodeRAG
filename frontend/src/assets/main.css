@@ -120,6 +120,15 @@ a:hover {
   color: #fff;
   border-color: var(--color-error);
 }
+.btn-warning {
+  background: var(--color-warning);
+  color: #fff;
+  border-color: var(--color-warning);
+}
+.btn-warning:hover:not(:disabled) {
+  background: #9a7518;
+  border-color: #9a7518;
+}
 .btn-sm {
   padding: 4px 12px;
   font-size: 13px;
@@ -191,6 +200,11 @@ textarea.input {
 .tag-error {
   background: #fde8e8;
   color: var(--color-error);
+}
+.tag-outline {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
 }
 
 /* 布局 */

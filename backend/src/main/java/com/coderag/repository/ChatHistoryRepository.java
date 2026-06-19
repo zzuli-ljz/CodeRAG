@@ -12,4 +12,6 @@ public interface ChatHistoryRepository extends JpaRepository<ChatHistory, Long> 
     Page<ChatHistory> findByUserIdAndRepoIdOrderByCreatedAtDesc(Long userId, Long repoId, Pageable pageable);
 
     long countByUserIdAndCreatedAtBetween(Long userId, java.time.LocalDateTime start, java.time.LocalDateTime end);
+
+    long countByUserId(Long userId);
 }

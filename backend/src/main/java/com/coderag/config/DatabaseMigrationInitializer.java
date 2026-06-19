@@ -97,9 +97,11 @@ public class DatabaseMigrationInitializer {
             // --- architecture_analyses: 去掉 UNIQUE 约束 + 加 round 列 ---
             "ALTER TABLE architecture_analyses DROP CONSTRAINT IF EXISTS architecture_analyses_repo_id_key",
             "ALTER TABLE architecture_analyses ADD COLUMN IF NOT EXISTS round INTEGER DEFAULT 1",
-            // --- code_chunks: 清空旧维度数据后升级到 1024 维（text-embedding-v4）---
-            "DELETE FROM code_chunks",
-            "ALTER TABLE code_chunks ALTER COLUMN embedding TYPE vector(1024)",
+            // --- code_chunks: 升级到 1024 维（text-embedding-v4），保留已有数据 ---
+            // 注意：如果之前是其他维度（如 1536），ALTER COLUMN 会自动转换，
+            // 但 pgvector 的 ALTER TYPE 在维度不同时会失败。
+            // 使用 DO 块安全处理：仅当列不存在或已是 1024 维时跳过
+            "DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='code_chunks' AND column_name='embedding') THEN ALTER TABLE code_chunks ALTER COLUMN embedding TYPE vector(1024); END IF; END $$",
             "DEALLOCATE ALL",
             // --- v2 新增表: 代码知识图谱 ---
             "CREATE TABLE IF NOT EXISTS code_graphs (id BIGSERIAL PRIMARY KEY, repo_id BIGINT NOT NULL, round INTEGER DEFAULT 1, graph_data TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)",
@@ -115,6 +117,10 @@ public class DatabaseMigrationInitializer {
             // --- v4 quiz_attempts 新增 status 字段: NORMAL/WRONG_BOOK/FAVORITE ---
             "ALTER TABLE quiz_attempts ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'NORMAL'",
             "CREATE INDEX IF NOT EXISTS idx_quiz_attempts_user_status ON quiz_attempts(user_id, status)",
+            // --- v5 笔记版本历史表 ---
+            "CREATE TABLE IF NOT EXISTS note_versions (id BIGSERIAL PRIMARY KEY, snippet_id BIGINT NOT NULL, user_id BIGINT NOT NULL, note TEXT, tags VARCHAR(500), version_number INTEGER NOT NULL, version_label VARCHAR(100), summary VARCHAR(200), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)",
+            "CREATE INDEX IF NOT EXISTS idx_note_versions_snippet ON note_versions(snippet_id, version_number DESC)",
+            "CREATE INDEX IF NOT EXISTS idx_note_versions_user ON note_versions(user_id)",
         };
         for (String sql : upgrades) {
             try {

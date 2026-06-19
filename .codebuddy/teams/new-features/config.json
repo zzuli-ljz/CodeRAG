@@ -1,0 +1,18 @@
+{
+  "name": "new-features",
+  "leadAgentId": "2dde3b3f5b7c4a7e87fdd814680694e1",
+  "workspacePath": "d:/desktop/桌面文件夹/课程作业/CodeRAG 多平台代码智能学习平台",
+  "createdAt": "2026-06-19T07:40:51.166Z",
+  "options": {
+    "workspacePath": "d:/desktop/桌面文件夹/课程作业/CodeRAG 多平台代码智能学习平台",
+    "isAutoTeam": false
+  },
+  "members": [
+    {
+      "memberId": "team-lead@new-features",
+      "name": "team-lead",
+      "role": "Team Lead - coordinates the team and interacts with the user"
+    }
+  ],
+  "isAutoTeam": false
+}
