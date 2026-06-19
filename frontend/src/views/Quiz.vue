@@ -91,6 +91,24 @@
           </div>
           <div class="feedback-body" v-html="renderMarkdown(getFeedback(quiz.id) || '')"></div>
         </div>
+
+        <!-- 操作按钮：错题本 / 收藏 -->
+        <div v-if="isSubmitted(quiz.id) && getAttemptId(quiz.id)" class="quiz-actions">
+          <button
+            class="btn btn-sm"
+            :class="getQuizStatusField(quiz.id, 'wrongBook') ? 'btn-primary' : 'btn-secondary'"
+            @click="handleToggleStatus(quiz.id, 'WRONG_BOOK')"
+          >
+            {{ getQuizStatusField(quiz.id, 'wrongBook') ? '已加入错题本' : '加入错题本' }}
+          </button>
+          <button
+            class="btn btn-sm"
+            :class="getQuizStatusField(quiz.id, 'favorite') ? 'btn-primary' : 'btn-secondary'"
+            @click="handleToggleStatus(quiz.id, 'FAVORITE')"
+          >
+            {{ getQuizStatusField(quiz.id, 'favorite') ? '已收藏' : '收藏' }}
+          </button>
+        </div>
       </div>
     </div>
 
@@ -118,8 +136,8 @@ const generating = ref(false)
 const submittingId = ref<number | null>(null)
 
 // 独立的状态追踪（不依赖 computed，避免每次重新计算覆盖用户选择）
-// key: quizId -> value: { userAnswer, submitted, feedback, isCorrect }
-const quizState = ref<Map<number, { userAnswer: string; submitted: boolean; feedback: string | null; isCorrect: boolean }>>(new Map())
+// key: quizId -> value: { userAnswer, submitted, feedback, isCorrect, attemptId, wrongBook, favorite }
+const quizState = ref<Map<number, { userAnswer: string; submitted: boolean; feedback: string | null; isCorrect: boolean; attemptId: number | null; wrongBook: boolean; favorite: boolean }>>(new Map())
 
 // 当前显示的题目列表（当前批次）
 function getCurrentQuizzes(): any[] {
@@ -188,7 +206,7 @@ function parseOptions(optionsStr: string): { key: string; label: string; text: s
 
 function getState(quizId: number) {
   if (!quizState.value.has(quizId)) {
-    quizState.value.set(quizId, { userAnswer: '', submitted: false, feedback: null, isCorrect: false })
+    quizState.value.set(quizId, { userAnswer: '', submitted: false, feedback: null, isCorrect: false, attemptId: null, wrongBook: false, favorite: false })
   }
   return quizState.value.get(quizId)!
 }
@@ -216,6 +234,30 @@ function isCorrect(quizId: number): boolean {
 
 function getFeedback(quizId: number): string | null {
   return getState(quizId).feedback
+}
+
+function getAttemptId(quizId: number): number | null {
+  return getState(quizId).attemptId
+}
+
+function getQuizStatusField(quizId: number, field: 'wrongBook' | 'favorite'): boolean {
+  return getState(quizId)[field]
+}
+
+async function handleToggleStatus(quizId: number, status: string) {
+  const s = getState(quizId)
+  const attemptId = s.attemptId
+  if (!attemptId) return
+  try {
+    const res = await quizApi.toggleStatus(attemptId, status)
+    if (res.data.code === 200) {
+      const newStatus = res.data.data.status
+      s.wrongBook = newStatus === 'WRONG_BOOK'
+      s.favorite = newStatus === 'FAVORITE'
+    }
+  } catch (e: any) {
+    alert('操作失败: ' + (e.response?.data?.message || e.message))
+  }
 }
 
 async function handleGenerate() {
@@ -246,6 +288,19 @@ async function handleSubmit(quiz: any) {
       s.submitted = true
       s.feedback = data.aiFeedback
       s.isCorrect = data.isCorrect
+      s.attemptId = data.id
+      s.wrongBook = data.status === 'WRONG_BOOK'
+      s.favorite = data.status === 'FAVORITE'
+
+      // 如果答错了，自动加入错题本
+      if (!data.isCorrect && data.status !== 'WRONG_BOOK') {
+        try {
+          const toggleRes = await quizApi.toggleStatus(data.id, 'WRONG_BOOK')
+          if (toggleRes.data.code === 200) {
+            s.wrongBook = toggleRes.data.data.status === 'WRONG_BOOK'
+          }
+        } catch { /* 静默失败 */ }
+      }
     }
   } catch (e: any) {
     alert('提交失败: ' + (e.response?.data?.message || e.message))
@@ -480,6 +535,12 @@ onMounted(async () => {
   padding: var(--space-sm);
   border-radius: var(--radius-sm);
   overflow-x: auto;
+}
+/* 操作按钮 */
+.quiz-actions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: 12px;
 }
 /* 空状态 */
 .quiz-empty {

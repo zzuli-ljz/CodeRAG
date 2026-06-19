@@ -63,6 +63,10 @@
           <h3 class="action-title">调用链图谱</h3>
           <p class="action-desc">代码调用关系可视化</p>
         </router-link>
+        <router-link :to="`/knowledge/${repo.id}`" class="card card-hover action-card">
+          <h3 class="action-title">知识库预览</h3>
+          <p class="action-desc">查看已向量化的文档片段</p>
+        </router-link>
       </div>
     </template>
   </div>

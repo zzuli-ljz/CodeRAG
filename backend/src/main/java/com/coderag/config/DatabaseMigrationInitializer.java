@@ -112,6 +112,9 @@ public class DatabaseMigrationInitializer {
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS banned BOOLEAN NOT NULL DEFAULT false",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS custom_import_limit INTEGER",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS custom_chat_limit INTEGER",
+            // --- v4 quiz_attempts 新增 status 字段: NORMAL/WRONG_BOOK/FAVORITE ---
+            "ALTER TABLE quiz_attempts ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'NORMAL'",
+            "CREATE INDEX IF NOT EXISTS idx_quiz_attempts_user_status ON quiz_attempts(user_id, status)",
         };
         for (String sql : upgrades) {
             try {

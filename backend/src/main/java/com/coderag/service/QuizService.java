@@ -2,6 +2,7 @@ package com.coderag.service;
 
 import com.coderag.common.cache.CacheService;
 import com.coderag.common.constant.RoleConstant;
+import com.coderag.dto.QuizAttemptDTO;
 import com.coderag.entity.*;
 import com.coderag.exception.BusinessException;
 import com.coderag.rag.BailianAiService;
@@ -12,6 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +33,7 @@ public class QuizService {
     private final QuizQuestionRepository quizQuestionRepository;
     private final QuizAttemptRepository quizAttemptRepository;
     private final CodeChunkRepository codeChunkRepository;
+    private final CodeRepositoryRepository codeRepositoryRepository;
     private final UserRepository userRepository;
     private final VectorStore vectorStore;
     private final CacheService cacheService;
@@ -299,13 +302,169 @@ public class QuizService {
         attempt.setUserAnswer(userAnswer);
         attempt.setIsCorrect(isCorrect);
         attempt.setAiFeedback(feedback);
+        // 答错的题自动加入错题本
+        attempt.setStatus(isCorrect ? "NORMAL" : "WRONG_BOOK");
         return quizAttemptRepository.save(attempt);
     }
 
     /**
-     * 获取作答历史
+     * 获取作答历史（含题目信息）
      */
-    public Page<QuizAttempt> getAttemptHistory(Long userId, int page, int size) {
-        return quizAttemptRepository.findByUserIdOrderByCreatedAtDesc(userId, PageRequest.of(page, size));
+    public Page<QuizAttemptDTO> getAttemptHistory(Long userId, int page, int size) {
+        Page<QuizAttempt> pageResult = quizAttemptRepository.findByUserIdOrderByCreatedAtDesc(userId, PageRequest.of(page, size));
+        return enrichWithQuestion(pageResult);
+    }
+
+    /**
+     * 获取错题本（含题目信息 + 多条件筛选）
+     */
+    public Page<QuizAttemptDTO> getWrongBook(Long userId, int page, int size,
+                                              String difficulty, String knowledgePoint,
+                                              Long repoId, String keyword) {
+        Page<QuizAttempt> pageResult = quizAttemptRepository.findWrongBookWithFilters(
+                userId, difficulty, knowledgePoint, repoId, keyword, PageRequest.of(page, size));
+        return enrichWithQuestion(pageResult);
+    }
+
+    /**
+     * 获取错题本可用的筛选选项（难度、知识点、仓库列表）
+     */
+    public Map<String, Object> getWrongBookFilters(Long userId) {
+        List<QuizAttempt> wrongAttempts = quizAttemptRepository.findAllWrongBook(userId);
+        List<Long> quizIds = wrongAttempts.stream().map(QuizAttempt::getQuizId).distinct().toList();
+        List<QuizQuestion> questions = quizQuestionRepository.findAllById(quizIds);
+
+        Set<String> difficulties = new LinkedHashSet<>();
+        Set<String> knowledgePoints = new LinkedHashSet<>();
+        Set<Long> repoIds = new LinkedHashSet<>();
+
+        for (QuizQuestion q : questions) {
+            if (q.getDifficulty() != null && !q.getDifficulty().isBlank()) {
+                difficulties.add(q.getDifficulty());
+            }
+            if (q.getKnowledgePoint() != null && !q.getKnowledgePoint().isBlank()) {
+                knowledgePoints.add(q.getKnowledgePoint());
+            }
+            repoIds.add(q.getRepoId());
+        }
+
+        // 获取仓库名称
+        List<CodeRepository> repos = codeRepositoryRepository.findAllById(new ArrayList<>(repoIds));
+        List<Map<String, Object>> repoList = repos.stream().map(r -> {
+            Map<String, Object> m = new HashMap<>();
+            m.put("id", r.getId());
+            m.put("name", r.getRepoName());
+            return m;
+        }).toList();
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("difficulties", difficulties);
+        result.put("knowledgePoints", knowledgePoints);
+        result.put("repos", repoList);
+        return result;
+    }
+
+    /**
+     * 获取收藏题目列表（含题目信息）
+     */
+    public Page<QuizAttemptDTO> getFavorites(Long userId, int page, int size) {
+        Page<QuizAttempt> pageResult = quizAttemptRepository.findFavorites(userId, PageRequest.of(page, size));
+        return enrichWithQuestion(pageResult);
+    }
+
+    /**
+     * 将 QuizAttempt 分页数据关联题目信息和仓库名称，转为 DTO
+     */
+    private Page<QuizAttemptDTO> enrichWithQuestion(Page<QuizAttempt> pageResult) {
+        List<Long> quizIds = pageResult.getContent().stream()
+                .map(QuizAttempt::getQuizId)
+                .distinct()
+                .toList();
+        Map<Long, QuizQuestion> questionMap = new HashMap<>();
+        Set<Long> repoIds = new LinkedHashSet<>();
+        if (!quizIds.isEmpty()) {
+            List<QuizQuestion> questions = quizQuestionRepository.findAllById(quizIds);
+            for (QuizQuestion q : questions) {
+                questionMap.put(q.getId(), q);
+                repoIds.add(q.getRepoId());
+            }
+        }
+        // 批量查询仓库名称
+        Map<Long, String> repoNameMap = new HashMap<>();
+        if (!repoIds.isEmpty()) {
+            List<CodeRepository> repos = codeRepositoryRepository.findAllById(new ArrayList<>(repoIds));
+            for (CodeRepository r : repos) {
+                repoNameMap.put(r.getId(), r.getRepoName());
+            }
+        }
+        List<QuizAttemptDTO> dtos = pageResult.getContent().stream()
+                .map(a -> {
+                    QuizQuestion q = questionMap.get(a.getQuizId());
+                    String repoName = q != null ? repoNameMap.getOrDefault(q.getRepoId(), null) : null;
+                    return QuizAttemptDTO.from(a, q, repoName);
+                })
+                .toList();
+        return new PageImpl<>(dtos, pageResult.getPageable(), pageResult.getTotalElements());
+    }
+
+    /**
+     * 切换题目状态：错题本/收藏/取消
+     */
+    @Transactional
+    public QuizAttempt toggleStatus(Long userId, Long attemptId, String targetStatus) {
+        QuizAttempt attempt = quizAttemptRepository.findById(attemptId)
+                .orElseThrow(() -> new BusinessException("作答记录不存在"));
+        if (!attempt.getUserId().equals(userId)) {
+            throw new BusinessException("无权操作他人的作答记录");
+        }
+
+        // 如果当前状态等于目标状态，则取消（恢复 NORMAL）
+        if (targetStatus.equals(attempt.getStatus())) {
+            attempt.setStatus("NORMAL");
+        } else {
+            attempt.setStatus(targetStatus);
+        }
+        return quizAttemptRepository.save(attempt);
+    }
+
+    /**
+     * 获取用户答题统计
+     */
+    public Map<String, Object> getQuizStats(Long userId) {
+        long totalAttempts = quizAttemptRepository.countByUserId(userId);
+        long correctAttempts = quizAttemptRepository.countCorrectByUserId(userId);
+        long wrongBookCount = quizAttemptRepository.countByUserIdAndStatus(userId, "WRONG_BOOK");
+        long favoriteCount = quizAttemptRepository.countByUserIdAndStatus(userId, "FAVORITE");
+
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("totalAttempts", totalAttempts);
+        stats.put("correctAttempts", correctAttempts);
+        stats.put("wrongAttempts", totalAttempts - correctAttempts);
+        stats.put("accuracyRate", totalAttempts > 0
+                ? Math.round((double) correctAttempts / totalAttempts * 10000.0) / 100.0
+                : 0.0);
+        stats.put("wrongBookCount", wrongBookCount);
+        stats.put("favoriteCount", favoriteCount);
+        return stats;
+    }
+
+    /**
+     * 获取用户对某题的最新作答状态（用于前端判断是否已收藏/已加入错题本）
+     */
+    public Map<String, Object> getQuizStatus(Long userId, Long quizId) {
+        List<QuizAttempt> attempts = quizAttemptRepository.findLatestByUserIdAndQuizId(userId, quizId);
+        Map<String, Object> result = new HashMap<>();
+        if (attempts.isEmpty()) {
+            result.put("attempted", false);
+            result.put("status", null);
+            result.put("attemptId", null);
+        } else {
+            QuizAttempt latest = attempts.get(0);
+            result.put("attempted", true);
+            result.put("status", latest.getStatus());
+            result.put("attemptId", latest.getId());
+            result.put("isCorrect", latest.getIsCorrect());
+        }
+        return result;
     }
 }

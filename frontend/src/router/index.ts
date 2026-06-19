@@ -68,9 +68,21 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/knowledge/:repoId',
+      name: 'Knowledge',
+      component: () => import('@/views/Knowledge.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/profile',
       name: 'Profile',
       component: () => import('@/views/Profile.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/quiz-stats',
+      name: 'QuizStats',
+      component: () => import('@/views/QuizStats.vue'),
       meta: { requiresAuth: true }
     },
     {

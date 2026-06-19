@@ -177,11 +177,13 @@ CREATE TABLE IF NOT EXISTS quiz_attempts (
     user_answer     TEXT          NOT NULL,
     is_correct      BOOLEAN       NOT NULL,
     ai_feedback     TEXT,
+    status          VARCHAR(20)   NOT NULL DEFAULT 'NORMAL',
     created_at      TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_quiz_attempts_user_id ON quiz_attempts(user_id);
 CREATE INDEX IF NOT EXISTS idx_quiz_attempts_quiz_id ON quiz_attempts(quiz_id);
+CREATE INDEX IF NOT EXISTS idx_quiz_attempts_user_status ON quiz_attempts(user_id, status);
 
 -- -----------------------------------------------------------
 -- 12. 代码版本对比记录表

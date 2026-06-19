@@ -33,6 +33,12 @@ public class QuizAttempt {
     @Column(columnDefinition = "TEXT")
     private String aiFeedback;
 
+    /**
+     * 作答状态：NORMAL(正常)、WRONG_BOOK(错题本)、FAVORITE(收藏)
+     */
+    @Column(nullable = false, length = 20)
+    private String status = "NORMAL";
+
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;

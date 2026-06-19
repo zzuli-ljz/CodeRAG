@@ -42,6 +42,7 @@ public class RepoService {
     /**
      * 导入仓库 - 快速返回任务ID，所有耗时操作均异步执行
      */
+    @org.springframework.transaction.annotation.Transactional
     public AsyncTask importRepo(Long userId, String repoUrl, String branch) {
         quotaService.checkImportQuota(userId);
         // 检查通过后立即预扣配额计数，防止异步任务并发导致超限

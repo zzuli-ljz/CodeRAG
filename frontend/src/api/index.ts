@@ -106,7 +106,25 @@ export const quizApi = {
   submitAnswer: (quizId: number, userAnswer: string) =>
     request.post('/quiz/answer', { quizId, userAnswer }),
   getAttempts: (page = 0, size = 10) =>
-    request.get('/quiz/attempts', { params: { page, size } })
+    request.get('/quiz/attempts', { params: { page, size } }),
+  // 错题本（支持筛选）
+  getWrongBook: (page = 0, size = 10, filters?: { difficulty?: string; knowledgePoint?: string; repoId?: number; keyword?: string }) =>
+    request.get('/quiz/wrong-book', { params: { page, size, ...filters } }),
+  // 错题本筛选选项
+  getWrongBookFilters: () =>
+    request.get('/quiz/wrong-book/filters'),
+  // 收藏列表
+  getFavorites: (page = 0, size = 10) =>
+    request.get('/quiz/favorites', { params: { page, size } }),
+  // 切换状态（错题本/收藏/取消）
+  toggleStatus: (attemptId: number, status: string) =>
+    request.put(`/quiz/attempt/${attemptId}/status`, null, { params: { status } }),
+  // 答题统计
+  getStats: () =>
+    request.get('/quiz/stats'),
+  // 获取用户对某题的最新状态
+  getQuizStatus: (quizId: number) =>
+    request.get(`/quiz/status/${quizId}`)
 }
 
 // ================================
@@ -159,6 +177,22 @@ export const adminApi = {
     request.get('/admin/tasks', { params: { page, size, userId, status } }),
   markTaskFailed: (taskId: number, reason: string) =>
     request.put(`/admin/tasks/${taskId}/fail`, null, { params: { reason } })
+}
+
+// ================================
+// Knowledge API
+// ================================
+export const knowledgeApi = {
+  listChunks: (repoId: number, page = 0, size = 20, language?: string, filePath?: string) =>
+    request.get(`/knowledge/chunks/${repoId}`, { params: { page, size, language, filePath } }),
+  getOverview: (repoId: number) =>
+    request.get(`/knowledge/overview/${repoId}`),
+  getChunkDetail: (chunkId: number) =>
+    request.get(`/knowledge/chunk/${chunkId}`),
+  listFiles: (repoId: number) =>
+    request.get(`/knowledge/files/${repoId}`),
+  listLanguages: (repoId: number) =>
+    request.get(`/knowledge/languages/${repoId}`)
 }
 
 export default request

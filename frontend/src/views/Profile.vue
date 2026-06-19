@@ -54,6 +54,40 @@
         </div>
       </div>
 
+      <!-- 答题统计 -->
+      <div class="card" style="margin-bottom:16px" v-if="quizStats">
+        <h3 style="margin-bottom:16px">答题统计</h3>
+        <div class="grid grid-4 stats-grid">
+          <div class="stat-item">
+            <div class="stat-num">{{ quizStats.totalAttempts || 0 }}</div>
+            <div class="stat-label">总答题数</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-num correct">{{ quizStats.correctAttempts || 0 }}</div>
+            <div class="stat-label">正确</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-num wrong">{{ quizStats.wrongAttempts || 0 }}</div>
+            <div class="stat-label">错误</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-num" :class="accuracyClass">{{ quizStats.accuracyRate || 0 }}%</div>
+            <div class="stat-label">正确率</div>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="stats-links">
+          <router-link to="/quiz-stats" class="stats-link">
+            <span class="link-icon">📊</span>
+            <span>错题本 ({{ quizStats.wrongBookCount || 0 }})</span>
+          </router-link>
+          <router-link to="/quiz-stats" class="stats-link">
+            <span class="link-icon">⭐</span>
+            <span>收藏题目 ({{ quizStats.favoriteCount || 0 }})</span>
+          </router-link>
+        </div>
+      </div>
+
       <!-- 我的仓库 -->
       <div class="card">
         <h3 style="margin-bottom:16px">我的仓库</h3>
@@ -85,10 +119,11 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { userApi, repoApi } from '@/api'
+import { userApi, repoApi, quizApi } from '@/api'
 
 const profile = ref<any>(null)
 const repos = ref<any[]>([])
+const quizStats = ref<any>(null)
 const loading = ref(true)
 const reimportingId = ref<number | null>(null)
 
@@ -111,6 +146,14 @@ const chatPercent = computed(() => {
   const used = profile.value.todayUsage?.chatCount || 0
   const limit = profile.value.quotaLimit?.dailyChatLimit || 20
   return Math.min((used / limit) * 100, 100)
+})
+
+const accuracyClass = computed(() => {
+  if (!quizStats.value) return ''
+  const rate = quizStats.value.accuracyRate || 0
+  if (rate >= 80) return 'correct'
+  if (rate >= 50) return ''
+  return 'wrong'
 })
 
 async function handleDelete(repoId: number) {
@@ -167,12 +210,14 @@ function pollTask(taskId: number, onSuccess: () => void) {
 
 onMounted(async () => {
   try {
-    const [profileRes, reposRes] = await Promise.all([
+    const [profileRes, reposRes, statsRes] = await Promise.all([
       userApi.getProfile(),
-      repoApi.listRepos(0, 50)
+      repoApi.listRepos(0, 50),
+      quizApi.getStats().catch(() => ({ data: { code: 0 } }))
     ])
     if (profileRes.data.code === 200) profile.value = profileRes.data.data
     if (reposRes.data.code === 200) repos.value = (Array.isArray(reposRes.data.data) ? reposRes.data.data : reposRes.data.data?.content) || []
+    if (statsRes.data.code === 200) quizStats.value = statsRes.data.data
   } catch (e) {
     // ignore
   } finally {
@@ -251,5 +296,48 @@ onMounted(async () => {
   display: flex;
   gap: var(--space-xs);
   flex-shrink: 0;
+}
+
+/* 答题统计 */
+.stats-grid {
+  margin-bottom: 0;
+}
+.stats-grid .stat-item {
+  text-align: center;
+  padding: var(--space-sm);
+}
+.stats-grid .stat-num {
+  font-size: 24px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--color-text-primary);
+}
+.stats-grid .stat-num.correct { color: var(--color-success); }
+.stats-grid .stat-num.wrong { color: var(--color-error); }
+.stats-grid .stat-label {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  margin-top: 4px;
+}
+.stats-links {
+  display: flex;
+  gap: var(--space-lg);
+}
+.stats-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 13px;
+  color: var(--color-accent);
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  transition: background 0.15s;
+}
+.stats-link:hover {
+  background: var(--color-accent-light);
+}
+.link-icon {
+  font-size: 16px;
 }
 </style>
