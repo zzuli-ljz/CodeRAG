@@ -333,11 +333,11 @@ function mapGitHubRepo(item: any): TrendingRepo {
 
 // ---- Gitee API ----
 async function fetchGiteeTrending(): Promise<TrendingRepo[]> {
-  // Gitee 搜索 API 不支持 stars:>xxx 语法，使用热门关键词搜索
+  // Gitee API sort 参数: created_at, last_push_at, stars_count, forks_count, watches_count
   const { data } = await axios.get('https://gitee.com/api/v5/search/repositories', {
     params: {
       q: 'AI',
-      sort: 'stars',
+      sort: 'stars_count',
       order: 'desc',
       per_page: 6
     },
@@ -350,7 +350,7 @@ async function searchGitee(keyword: string): Promise<{ repos: TrendingRepo[]; to
   const { data } = await axios.get('https://gitee.com/api/v5/search/repositories', {
     params: {
       q: keyword,
-      sort: 'stars',
+      sort: 'stars_count',
       order: 'desc',
       per_page: 10
     },
