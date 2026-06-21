@@ -5,31 +5,83 @@
       <p class="page-desc">粘贴 GitHub 或 Gitee 公开仓库链接，系统将自动解析、分块、向量化入库</p>
     </div>
 
-    <div class="card import-card">
-      <div class="form-group">
-        <label class="form-label">仓库链接</label>
-        <input
-          v-model="repoUrl"
-          type="text"
-          class="input"
-          placeholder="https://github.com/owner/repo 或 https://gitee.com/owner/repo"
-        />
+    <div class="import-layout">
+      <!-- 左侧：导入表单 -->
+      <div class="card import-card">
+        <div class="form-group">
+          <label class="form-label">仓库链接</label>
+          <input
+            v-model="repoUrl"
+            type="text"
+            class="input"
+            placeholder="https://github.com/owner/repo 或 https://gitee.com/owner/repo"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label">分支（可选，默认为主分支）</label>
+          <input v-model="branch" type="text" class="input" placeholder="main / master" />
+        </div>
+        <div class="platform-hint">
+          <span class="tag" :class="platformTag">{{ platformLabel }}</span>
+        </div>
+        <button
+          class="btn btn-primary btn-lg"
+          style="margin-top:16px"
+          @click="handleImport"
+          :disabled="!repoUrl || importing"
+        >
+          {{ importing ? '提交中...' : '开始导入' }}
+        </button>
       </div>
-      <div class="form-group">
-        <label class="form-label">分支（可选，默认为主分支）</label>
-        <input v-model="branch" type="text" class="input" placeholder="main / master" />
+
+      <!-- 右侧：热门仓库推荐 -->
+      <div class="trending-panel">
+        <div class="trending-tabs">
+          <button
+            :class="['trending-tab', { active: trendingTab === 'github' }]"
+            @click="switchTrending('github')"
+          >
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+            GitHub 热门
+          </button>
+          <button
+            :class="['trending-tab', { active: trendingTab === 'gitee' }]"
+            @click="switchTrending('gitee')"
+          >
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><text x="12" y="16" text-anchor="middle" font-size="10" font-weight="bold" fill="currentColor">G</text></svg>
+            Gitee 热门
+          </button>
+        </div>
+
+        <div class="trending-list" v-if="!trendingLoading && trendingRepos.length > 0">
+          <div
+            v-for="repo in trendingRepos"
+            :key="repo.id"
+            class="trending-item"
+            @click="selectTrending(repo)"
+          >
+            <div class="trending-repo-name">
+              <span class="trending-owner">{{ repo.owner }}/</span>
+              <span class="trending-name">{{ repo.name }}</span>
+            </div>
+            <p class="trending-desc">{{ repo.description || '暂无描述' }}</p>
+            <div class="trending-meta">
+              <span class="trending-stars">⭐ {{ formatNumber(repo.stars) }}</span>
+              <span v-if="repo.language" class="trending-lang">{{ repo.language }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="trending-loading" v-if="trendingLoading">
+          <span class="spinner"></span>
+          <span>加载热门仓库...</span>
+        </div>
+
+        <div class="trending-error" v-if="trendingError">
+          <p>{{ trendingError }}</p>
+          <button class="btn btn-secondary btn-sm" @click="fetchTrending">重试</button>
+        </div>
       </div>
-      <div class="platform-hint">
-        <span class="tag" :class="platformTag">{{ platformLabel }}</span>
-      </div>
-      <button
-        class="btn btn-primary btn-lg"
-        style="margin-top:16px"
-        @click="handleImport"
-        :disabled="!repoUrl || importing"
-      >
-        {{ importing ? '提交中...' : '开始导入' }}
-      </button>
     </div>
 
     <!-- 进度展示 -->
@@ -107,9 +159,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { repoApi } from '@/api'
 import { useRouter } from 'vue-router'
+import axios from 'axios'
 
 const router = useRouter()
 const repoUrl = ref('')
@@ -117,6 +170,113 @@ const branch = ref('')
 const importing = ref(false)
 const task = ref<any>(null)
 let pollTimer: any = null
+
+// ========== 热门仓库 ==========
+interface TrendingRepo {
+  id: number
+  owner: string
+  name: string
+  fullName: string
+  htmlUrl: string
+  description: string
+  stars: number
+  language: string
+  platform: 'github' | 'gitee'
+}
+
+const trendingTab = ref<'github' | 'gitee'>('github')
+const trendingRepos = ref<TrendingRepo[]>([])
+const trendingLoading = ref(false)
+const trendingError = ref('')
+
+function formatNumber(n: number): string {
+  if (n >= 1000) return (n / 1000).toFixed(1) + 'k'
+  return String(n)
+}
+
+async function fetchGitHubTrending(): Promise<TrendingRepo[]> {
+  const { data } = await axios.get('https://api.github.com/search/repositories', {
+    params: {
+      q: 'stars:>5000 created:>2024-01-01',
+      sort: 'stars',
+      order: 'desc',
+      per_page: 6
+    },
+    headers: { Accept: 'application/vnd.github.v3+json' },
+    timeout: 10000
+  })
+  return (data.items || []).map((item: any) => ({
+    id: item.id,
+    owner: item.owner?.login || '',
+    name: item.name,
+    fullName: item.full_name,
+    htmlUrl: item.html_url,
+    description: item.description,
+    stars: item.stargazers_count,
+    language: item.language,
+    platform: 'github' as const
+  }))
+}
+
+async function fetchGiteeTrending(): Promise<TrendingRepo[]> {
+  const { data } = await axios.get('https://gitee.com/api/v5/search/repositories', {
+    params: {
+      q: 'stars:>200',
+      sort: 'stars',
+      order: 'desc',
+      per_page: 6
+    },
+    timeout: 10000
+  })
+  return (data || []).map((item: any) => ({
+    id: item.id,
+    owner: item.owner?.login || item.namespace?.path || '',
+    name: item.name,
+    fullName: item.full_name,
+    htmlUrl: item.html_url,
+    description: item.description,
+    stars: item.stargazers_count || item.stars_count || 0,
+    language: item.language,
+    platform: 'gitee' as const
+  }))
+}
+
+async function fetchTrending() {
+  trendingLoading.value = true
+  trendingError.value = ''
+  trendingRepos.value = []
+  try {
+    if (trendingTab.value === 'github') {
+      trendingRepos.value = await fetchGitHubTrending()
+    } else {
+      trendingRepos.value = await fetchGiteeTrending()
+    }
+  } catch (e: any) {
+    if (e.response?.status === 403) {
+      trendingError.value = 'API 请求频率限制，请稍后重试'
+    } else if (e.code === 'ECONNABORTED') {
+      trendingError.value = '请求超时，请检查网络连接'
+    } else {
+      trendingError.value = '加载失败，请检查网络或稍后重试'
+    }
+  } finally {
+    trendingLoading.value = false
+  }
+}
+
+function switchTrending(platform: 'github' | 'gitee') {
+  trendingTab.value = platform
+  fetchTrending()
+}
+
+function selectTrending(repo: TrendingRepo) {
+  repoUrl.value = repo.htmlUrl
+  branch.value = ''
+}
+
+onMounted(() => {
+  fetchTrending()
+})
 
 const steps = [
   { label: '获取文件列表', runningText: '正在获取仓库文件...', doneText: '文件列表获取完成' },
@@ -200,8 +360,135 @@ function startPolling() {
 </script>
 
 <style scoped>
+/* 左右布局 */
+.import-layout {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
 .import-card {
-  max-width: 600px;
+  flex: 1;
+  max-width: 520px;
+}
+
+/* 热门仓库面板 */
+.trending-panel {
+  flex: 1;
+  max-width: 400px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.trending-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--color-border);
+}
+.trending-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.trending-tab:hover {
+  color: var(--color-text-primary);
+  background: var(--color-bg-tertiary);
+}
+.trending-tab.active {
+  color: var(--color-primary);
+  border-bottom: 2px solid var(--color-primary);
+  margin-bottom: -1px;
+}
+
+/* 热门列表 */
+.trending-list {
+  padding: 8px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+.trending-item {
+  padding: 12px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.12s;
+  border: 1px solid transparent;
+}
+.trending-item:hover {
+  background: var(--color-accent-light);
+  border-color: var(--color-accent);
+}
+.trending-item + .trending-item {
+  margin-top: 4px;
+}
+.trending-repo-name {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.trending-owner {
+  color: var(--color-text-secondary);
+  font-weight: 400;
+}
+.trending-name {
+  color: var(--color-accent);
+}
+.trending-desc {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+  margin-bottom: 6px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.trending-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+}
+.trending-stars {
+  color: #e3b341;
+}
+.trending-lang {
+  color: var(--color-text-secondary);
+  padding: 1px 8px;
+  background: var(--color-bg-tertiary);
+  border-radius: 10px;
+  font-size: 11px;
+}
+
+/* 加载/错误状态 */
+.trending-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 40px 16px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+.trending-error {
+  padding: 24px 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+.trending-error p {
+  margin-bottom: 10px;
 }
 .form-group {
   margin-bottom: var(--space-md);
